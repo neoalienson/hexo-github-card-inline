@@ -1,0 +1,19 @@
+{
+  "name": "hexo-github-card-inline",
+  "version": "1.0.0",
+  "description": "A Hexo plugin to render GitHub user/repo cards inline",
+  "main": "index.js",
+  "keywords": ["hexo", "github", "card", "plugin"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "chai": "^4.3.0"
+  },
+  "scripts": {
+    "test": "jest"
+  }
+}
