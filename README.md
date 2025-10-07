@@ -11,9 +11,14 @@ npm install hexo-github-card-inline
 ## Usage
 
 ### User Card
+
 ```
 {% githubCard user:neoalienson %}
 ```
+
+Sample:
+
+![](images/sample1.png)
 
 ### Repository Card
 ```
