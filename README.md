@@ -24,6 +24,7 @@ Sample:
 ```
 {% githubCard user:neoalienson repo:hexo-github-card-inline %}
 ```
+![](images/sample-repo.png)
 
 ### With Custom Styling
 ```

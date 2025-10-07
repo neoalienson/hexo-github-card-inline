@@ -1,11 +1,27 @@
 {
   "name": "hexo-github-card-inline",
   "version": "1.0.0",
-  "description": "A Hexo plugin to render GitHub user/repo cards inline",
+  "description": "A Hexo plugin to render GitHub user and repository cards inline with language statistics and modern styling",
   "main": "index.js",
-  "keywords": ["hexo", "github", "card", "plugin"],
-  "author": "",
+  "keywords": ["hexo", "github", "card", "plugin", "repository", "user", "statistics"],
+  "author": "Neo Alienson <neo@01man.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neoalienson/hexo-github-card-inline"
+  },
+  "homepage": "https://github.com/neoalienson/hexo-github-card-inline#readme",
+  "bugs": {
+    "url": "https://github.com/neoalienson/hexo-github-card-inline/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "files": [
+    "index.js",
+    "github-card.css",
+    "README.md"
+  ],
   "dependencies": {
     "axios": "^1.6.0"
   },
