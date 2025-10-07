@@ -131,6 +131,61 @@
   border-bottom-right-radius: 4px;
 }
 
+.github-repo-card {
+  display: flex;
+  flex-direction: row !important;
+  align-items: flex-start;
+  gap: 1rem;
+  min-height: inherit;
+}
+
+.github-repo-icon {
+  font-size: 3rem;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.github-repo-info {
+  flex: 1;
+}
+
+.github-repo-info h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.github-repo-info h3 a {
+  text-decoration: none;
+  color: #1f2937;
+}
+
+.github-repo-info p {
+  margin: 0 0 1rem 0;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.github-repo-stats {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.github-repo-stat {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.github-repo-octocat {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.github-repo-octocat svg {
+  fill: #6b7280;
+}
+
 .github-card-error {
   color: #d73a49;
   padding: 8px;
