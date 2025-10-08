@@ -8,6 +8,13 @@ A Hexo plugin to render GitHub user and repository cards inline.
 npm install hexo-github-card-inline
 ```
 
+## How to Use
+
+1. **Install the plugin** using npm (see Installation above)
+2. **Restart your Hexo server** to load the plugin
+3. **Add GitHub cards to your posts or pages** using the `{% githubCard %}` tag
+4. **Generate your site** with `hexo generate` or `hexo server`
+
 ## Usage
 
 ### User Card
@@ -49,6 +56,8 @@ github_card:
   api_token: your_github_token_here  # Optional: GitHub API token for higher rate limits
   inject_css: false                 # Optional: Disable automatic CSS injection
 ```
+
+⚠️ **Security Warning:** Never commit your GitHub API token to your repository. Use environment variables (eg, [plugin](https://github.com/wenonly/hexo-dynamic-config)) or keep your `_config.yml` out of version control when using tokens.
 
 **GitHub API Token Benefits:**
 - Higher rate limits (5000 requests/hour vs 60 requests/hour)

@@ -24,6 +24,9 @@ hexo.extend.tag.register('githubCard', async function(args) {
   
   // Get API token from config
   const config = hexo.config.github_card || {};
+  if (config.api_token) {
+    hexo.log.warn('GitHub Card: API token detected in configuration. Ensure this token is not committed to your repository!');
+  }
   const headers = config.api_token ? { Authorization: `token ${config.api_token}` } : {};
   
   try {
