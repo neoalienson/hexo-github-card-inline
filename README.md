@@ -55,6 +55,7 @@ Add configuration to your `_config.yml`:
 github_card:
   api_token: your_github_token_here  # Optional: GitHub API token for higher rate limits
   inject_css: false                 # Optional: Disable automatic CSS injection
+  priority: 10                      # Optional: Filter execution priority (default: 10)
 ```
 
 ⚠️ **Security Warning:** Never commit your GitHub API token to your repository. Use environment variables (eg, [plugin](https://github.com/wenonly/hexo-dynamic-config)) or keep your `_config.yml` out of version control when using tokens.

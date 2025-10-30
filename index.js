@@ -203,6 +203,7 @@ hexo.extend.filter.register('after_generate', function() {
   if (config.inject_css === false) {
     return;
   }
+  config.priority = config.priority !== undefined ? config.priority : 10;
   
   const cssPath = path.join(__dirname, 'github-card.css');
   let css;
@@ -238,4 +239,4 @@ hexo.extend.filter.register('after_generate', function() {
       route.set(hpath, htmls[hpath]);
     }
   });
-});
+}, hexo.config.github_card?.priority ?? 10);
