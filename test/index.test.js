@@ -1,9 +1,9 @@
 const axios = require('axios');
 const { expect } = require('chai');
+const fs = require('fs');
+const path = require('path');
 
 jest.mock('axios');
-jest.mock('fs');
-jest.mock('path');
 const mockedAxios = axios;
 
 // Mock hexo object
@@ -25,14 +25,26 @@ global.hexo = {
 
 describe('hexo-github-card-inline', () => {
   let tagFunction;
+  let pluginModule;
 
   beforeAll(() => {
-    require('../index');
+    pluginModule = require('../index');
     tagFunction = hexo.extend.tag.register.mock.calls[0][1];
+  });
+
+  beforeEach(() => {
+    hexo.base_dir = path.join(__dirname, '..');
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    hexo.config = {};
+    pluginModule.cache.clear();
+    
+    const cacheDir = path.join(hexo.base_dir, '.github-card-cache');
+    if (fs.existsSync(cacheDir)) {
+      fs.rmSync(cacheDir, { recursive: true, force: true });
+    }
   });
 
   describe('user card', () => {
@@ -146,6 +158,17 @@ describe('hexo-github-card-inline', () => {
       expect(result).to.include('Error loading GitHub data');
     });
 
+    it('should handle 404 errors', async () => {
+      const error = new Error('Not Found');
+      error.response = { status: 404 };
+      mockedAxios.get.mockRejectedValue(error);
+
+      const result = await tagFunction(['user:nonexistent']);
+      
+      expect(result).to.include('github-card-error');
+      expect(hexo.log.error.mock.calls.some(call => call[0].includes('404 Not Found'))).to.be.true;
+    });
+
     it('should handle invalid arguments', async () => {
       const result = await tagFunction([]);
       expect(result).to.equal('');
@@ -171,6 +194,111 @@ describe('hexo-github-card-inline', () => {
       
       expect(result).to.include('UnknownLang');
       expect(result).to.include('#8cc8ff');
+    });
+  });
+
+  describe('caching', () => {
+    it('should cache API responses when enabled', async () => {
+      hexo.config.github_card = { cache_enabled: true, cache_ttl: 3600 };
+      
+      const mockRepo = {
+        full_name: 'user/repo',
+        html_url: 'https://github.com/user/repo',
+        description: 'Test',
+        stargazers_count: 10,
+        forks_count: 5,
+        language: 'JavaScript'
+      };
+
+      mockedAxios.get.mockResolvedValue({ data: mockRepo });
+
+      await tagFunction(['user:user', 'repo:repo']);
+      await tagFunction(['user:user', 'repo:repo']);
+      
+      expect(mockedAxios.get.mock.calls.length).to.equal(1);
+    });
+
+    it('should not cache when disabled', async () => {
+      hexo.config.github_card = { cache_enabled: false };
+      
+      const mockRepo = {
+        full_name: 'user/repo',
+        html_url: 'https://github.com/user/repo',
+        description: 'Test',
+        stargazers_count: 10,
+        forks_count: 5,
+        language: 'JavaScript'
+      };
+
+      mockedAxios.get.mockResolvedValue({ data: mockRepo });
+
+      await tagFunction(['user:user', 'repo:repo']);
+      await tagFunction(['user:user', 'repo:repo']);
+      
+      expect(mockedAxios.get.mock.calls.length).to.equal(2);
+    });
+
+    it('should invalidate cache after TTL expires', async () => {
+      hexo.config.github_card = { cache_enabled: true, cache_ttl: 0.02 };
+      
+      const mockRepo = {
+        full_name: 'user/repo',
+        html_url: 'https://github.com/user/repo',
+        description: 'Test',
+        stargazers_count: 10,
+        forks_count: 5,
+        language: 'JavaScript'
+      };
+
+      mockedAxios.get.mockResolvedValue({ data: mockRepo });
+
+      await tagFunction(['user:user', 'repo:repo']);
+      await new Promise(resolve => setTimeout(resolve, 30));
+      await tagFunction(['user:user', 'repo:repo']);
+      
+      expect(mockedAxios.get.mock.calls.length).to.equal(2);
+    });
+
+    it('should persist cache to disk when enabled', async () => {
+      hexo.config.github_card = { cache_enabled: true, cache_persist: true };
+      
+      const mockRepo = {
+        full_name: 'user/repo',
+        html_url: 'https://github.com/user/repo',
+        description: 'Test',
+        stargazers_count: 10,
+        forks_count: 5,
+        language: 'JavaScript'
+      };
+
+      mockedAxios.get.mockResolvedValue({ data: mockRepo });
+
+      await tagFunction(['user:user', 'repo:repo']);
+      
+      const cacheDir = path.join(hexo.base_dir, '.github-card-cache');
+      expect(fs.existsSync(cacheDir)).to.be.true;
+      expect(fs.readdirSync(cacheDir).length).to.be.greaterThan(0);
+    });
+
+    it('should load cache from disk on subsequent builds', async () => {
+      hexo.config.github_card = { cache_enabled: true, cache_persist: true };
+      
+      const mockRepo = {
+        full_name: 'user/repo',
+        html_url: 'https://github.com/user/repo',
+        description: 'Test',
+        stargazers_count: 10,
+        forks_count: 5,
+        language: 'JavaScript'
+      };
+
+      mockedAxios.get.mockResolvedValue({ data: mockRepo });
+
+      await tagFunction(['user:user', 'repo:repo']);
+      pluginModule.cache.clear();
+      await tagFunction(['user:user', 'repo:repo']);
+      
+      expect(mockedAxios.get.mock.calls.length).to.equal(1);
     });
   });
 });

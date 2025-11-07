@@ -56,6 +56,9 @@ github_card:
   api_token: your_github_token_here  # Optional: GitHub API token for higher rate limits
   inject_css: false                 # Optional: Disable automatic CSS injection
   priority: 10                      # Optional: Filter execution priority (default: 10)
+  cache_enabled: true               # Optional: Enable API response caching (default: false)
+  cache_ttl: 3600                   # Optional: Cache time-to-live in seconds (default: 3600)
+  cache_persist: true               # Optional: Persist cache to disk (default: false)
 ```
 
 ⚠️ **Security Warning:** Never commit your GitHub API token to your repository. Use environment variables (eg, [plugin](https://github.com/wenonly/hexo-dynamic-config)) or keep your `_config.yml` out of version control when using tokens.
@@ -64,6 +67,14 @@ github_card:
 - Higher rate limits (5000 requests/hour vs 60 requests/hour)
 - Access to private repository data (if token has permissions)
 - Better reliability for high-traffic sites
+
+**Caching:**
+- Reduces API calls during site generation
+- Improves build performance
+- Helps avoid rate limits
+- `cache_ttl`: Time in seconds before cache expires (default: 3600 = 1 hour)
+- `cache_persist`: When enabled, cache is saved to `.github-card-cache/` directory and persists between builds (default: false)
+- When `cache_persist` is disabled, cache is stored in memory only and cleared on each build
 
 ## CSS Styling
 

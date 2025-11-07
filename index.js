@@ -1,6 +1,87 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
+
+const cache = new Map();
+let cacheLoaded = false;
+
+function getCacheKey(url) {
+  return crypto.createHash('md5').update(url).digest('hex');
+}
+
+function isCacheValid(entry, ttl) {
+  return Date.now() - entry.timestamp < ttl;
+}
+
+function getCacheDir(hexo) {
+  return path.join(hexo.base_dir, '.github-card-cache');
+}
+
+function loadCache(hexo, config) {
+  if (!config.cache_persist || cacheLoaded) return;
+  
+  const cacheDir = getCacheDir(hexo);
+  if (!fs.existsSync(cacheDir)) return;
+  
+  try {
+    const files = fs.readdirSync(cacheDir);
+    files.forEach(file => {
+      const filePath = path.join(cacheDir, file);
+      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      cache.set(file.replace('.json', ''), data);
+    });
+    cacheLoaded = true;
+    hexo.log.debug(`GitHub Card: Loaded ${files.length} cached entries`);
+  } catch (error) {
+    hexo.log.warn(`GitHub Card: Failed to load cache: ${error.message}`);
+  }
+}
+
+function saveCache(hexo, key, data, config) {
+  if (!config.cache_persist) {
+    hexo.log.debug('GitHub Card: cache_persist is disabled, skipping save');
+    return;
+  }
+  
+  const cacheDir = getCacheDir(hexo);
+  hexo.log.debug(`GitHub Card: Saving cache to ${cacheDir}`);
+  if (!fs.existsSync(cacheDir)) {
+    fs.mkdirSync(cacheDir, { recursive: true });
+    hexo.log.debug(`GitHub Card: Created cache directory ${cacheDir}`);
+  }
+  
+  try {
+    const filePath = path.join(cacheDir, `${key}.json`);
+    fs.writeFileSync(filePath, JSON.stringify(data));
+    hexo.log.debug(`GitHub Card: Saved cache file ${filePath}`);
+  } catch (error) {
+    hexo.log.warn(`GitHub Card: Failed to save cache: ${error.message}`);
+  }
+}
+
+async function fetchWithCache(hexo, url, headers, config) {
+  if (!config.cache_enabled) {
+    return axios.get(url, { headers });
+  }
+
+  loadCache(hexo, config);
+  
+  const cacheKey = getCacheKey(url);
+  const ttl = (config.cache_ttl || 3600) * 1000;
+  const cached = cache.get(cacheKey);
+
+  if (cached && isCacheValid(cached, ttl)) {
+    hexo.log.debug(`GitHub Card: Using cached data for ${url}`);
+    return { data: cached.data };
+  }
+
+  const response = await axios.get(url, { headers });
+  const cacheEntry = { data: response.data, timestamp: Date.now() };
+  cache.set(cacheKey, cacheEntry);
+  saveCache(hexo, cacheKey, cacheEntry, config);
+  return response;
+}
 
 hexo.extend.tag.register('githubCard', async function(args) {
   hexo.log.debug(`GitHub Card: Processing tag with args: ${JSON.stringify(args)}`);
@@ -22,7 +103,6 @@ hexo.extend.tag.register('githubCard', async function(args) {
   
   hexo.log.debug(`GitHub Card: Processing card for user ${params.user}, repo: ${params.repo || 'none'}`);
   
-  // Get API token from config
   const config = hexo.config.github_card || {};
   if (config.api_token) {
     hexo.log.warn('GitHub Card: API token detected in configuration. Ensure this token is not committed to your repository!');
@@ -32,7 +112,7 @@ hexo.extend.tag.register('githubCard', async function(args) {
   try {
     if (params.repo) {
       hexo.log.debug(`GitHub Card: Fetching repo data for ${params.user}/${params.repo}`);
-      const response = await axios.get(`https://api.github.com/repos/${params.user}/${params.repo}`, { headers });
+      const response = await fetchWithCache(hexo, `https://api.github.com/repos/${params.user}/${params.repo}`, headers, config);
       const repository = response.data;
       hexo.log.debug(`GitHub Card: Successfully fetched repo ${repository.full_name}`);
       
@@ -54,9 +134,9 @@ hexo.extend.tag.register('githubCard', async function(args) {
     } else {
       hexo.log.debug(`GitHub Card: Fetching user data for ${params.user}`);
       const [userResponse, reposResponse, eventsResponse] = await Promise.all([
-        axios.get(`https://api.github.com/users/${params.user}`, { headers }),
-        axios.get(`https://api.github.com/users/${params.user}/repos?per_page=100`, { headers }),
-        axios.get(`https://api.github.com/users/${params.user}/events/public?per_page=100`, { headers })
+        fetchWithCache(hexo, `https://api.github.com/users/${params.user}`, headers, config),
+        fetchWithCache(hexo, `https://api.github.com/users/${params.user}/repos?per_page=100`, headers, config),
+        fetchWithCache(hexo, `https://api.github.com/users/${params.user}/events/public?per_page=100`, headers, config)
       ]);
       
       const user = userResponse.data;
@@ -191,7 +271,12 @@ hexo.extend.tag.register('githubCard', async function(args) {
       </div>`;
     }
   } catch (error) {
-    hexo.log.error(`GitHub Card: API error for ${params.user}/${params.repo || ''}: ${error.message}`);
+    const status = error.response?.status;
+    if (status === 404) {
+      hexo.log.error(`GitHub Card: 404 Not Found - ${params.user}/${params.repo || ''} does not exist`);
+    } else {
+      hexo.log.error(`GitHub Card: API error for ${params.user}/${params.repo || ''}: ${error.message}`);
+    }
     return `<div class="github-card-error">Error loading GitHub data for ${params.user}${params.repo ? '/' + params.repo : ''}</div>`;
   }
 }, { async: true });
@@ -240,3 +325,5 @@ hexo.extend.filter.register('after_generate', function() {
     }
   });
 }, hexo.config.github_card?.priority ?? 10);
+
+module.exports = { cache };

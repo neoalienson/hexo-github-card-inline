@@ -1,6 +1,6 @@
 {
   "name": "hexo-github-card-inline",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "A Hexo plugin to render GitHub user and repository cards inline with language statistics and modern styling",
   "main": "index.js",
   "keywords": ["hexo", "github", "card", "plugin", "repository", "user", "statistics"],
